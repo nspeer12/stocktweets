@@ -12,6 +12,18 @@ import sys
 import subprocess
 import pymysql
 
+class insert(Thread):
+    
+    def __init__(self,query):
+        Thread.__init__(self)
+        self.query = query
+    
+    def run(self):
+        self.conn = pymysql.connect(user='admin_admin', password='E8Mv0oVq2f',host='35.211.184.200',database='admin_nlp_tweets')
+        self.db = self.conn.cursor()
+        self.db.execute(self.query)
+        self.conn.commit()
+
 class instance(Thread):
     
     def __init__(self, thread):
@@ -30,7 +42,7 @@ class instance(Thread):
         
         self.conn = pymysql.connect(user='admin_admin', password='E8Mv0oVq2f',host='35.211.184.200',database='admin_nlp_tweets')
         self.db = self.conn.cursor()
-        self.db.execute("select * from tickers where id<46 order by watchers asc")
+        self.db.execute("select * from tickers where id<4 order by watchers asc")
         self.rs = self.db.fetchall(); 
         
     def proxyChange(self):
@@ -97,10 +109,6 @@ class instance(Thread):
             except JSONDecodeError:
                 for x in sys.exc_info(): 
                     print("Unexpected error:", x)
-                    print("Reconnecting to DB ...")
-                    self.conn.close()
-                    self.conn = pymysql.connect(user='admin_admin', password='E8Mv0oVq2f',host='35.211.184.200',database='admin_nlp_tweets')
-                    self.db = self.conn.cursor()
         
                 suc -= 3
                 print("Retrying in "+str(suc*-1)+"s...")
@@ -124,11 +132,7 @@ class instance(Thread):
                     print("Pausing initiated by Thread: ",self.thread)
                     print("Changing Proxy...")
                     
-                    self.conn.close()
-                    self.proxyChange() 
-                    self.conn = pymysql.connect(user='admin_admin', password='E8Mv0oVq2f',host='35.211.184.200',database='admin_nlp_tweets')
-                    self.db = self.conn.cursor()
-            
+                    self.proxyChange()
             except:
                 for x in sys.exc_info(): 
                     print("Unexpected error:", x)
@@ -136,15 +140,6 @@ class instance(Thread):
                 suc -= 3
                 print("Retrying in "+str(suc*-1)+"s...")
                 time.sleep(suc*-1)
-                
-    def reconnect(self):
-        
-        # This function connects to the database.
-        # It refreshes the connection. 
-        
-        self.conn.close()
-        self.conn = pymysql.connect(user='admin_admin', password='E8Mv0oVq2f',host='35.211.184.200',database='admin_nlp_tweets')
-        self.db = self.conn.cursor()
         
     def processData(self):
         
@@ -152,7 +147,9 @@ class instance(Thread):
         
         global totalPages
         global pause
-        global totalTweets 
+        global totalTweets
+        global start
+        
         self.tickerTweets  = 0
         
         self.getTweetPage()
@@ -170,23 +167,20 @@ class instance(Thread):
                 
                 if(str(self.dictionary['messages'][self.i]['entities']['sentiment']) == "None"):
                     isNull = 0;
-                else:
-                    # refresh connection to DB after 3000 calls
-                    if(totalTweets % 3000):
-                        self.reconnect()
-                        
+                    
+                else:                     
                     if str(self.dictionary['messages'][self.i]['entities']['sentiment']['basic']) == "Bullish":
                         
                             totalTweets += 1
                             self.tweets += 1
                             self.tickerTweets += 1 
                             
-                            print(self.symbol+" | "+str(totalTweets)+" | "+str(self.tickerTweets)+"/"+str(self.goal)+" | Page # "+str(totalPages)+" | Page # "+str(self.page)+" | Tweet # "+str(self.i)+" | "+message['user']['username']+" | Bullish : "+str(self.thread))
+                            print(str(round((time.time() - start)/totalTweets,3))+"s per tweet "+self.symbol+" | "+str(totalTweets)+" | "+str(self.tickerTweets)+"/"+str(self.goal)+" | Page # "+str(totalPages)+" | Page # "+str(self.page)+" | Tweet # "+str(self.i)+" | "+message['user']['username']+" | Bullish : "+str(self.thread))
                             
                             # insert bullish comment to database
                             if(len(x) > 0):
-                                self.db.execute("insert into tweets (ticker,tweet,sentiment,page) values ('"+self.symbol+"','"+x+"','Bullish','"+str(self.page)+"')")
-                                self.conn.commit()
+                                a = insert("insert into testing (ticker,tweet,sentiment,page) values ('"+self.symbol+"','"+x+"','Bullish','"+str(self.page)+"')")
+                                a.start()
                                 
                     if str(self.dictionary['messages'][self.i]['entities']['sentiment']['basic']) == "Bearish":
                         
@@ -194,13 +188,13 @@ class instance(Thread):
                             self.tweets += 1
                             self.tickerTweets += 1 
                             
-                            print(self.symbol+" | "+str(totalTweets)+" | "+str(self.tickerTweets)+"/"+str(self.goal)+" | Page # "+str(totalPages)+" | Page # "+str(self.page)+" | Tweet # "+str(self.i)+" | "+message['user']['username']+" | Bearish : "+str(self.thread))
+                            print(str(round((time.time() - start)/totalTweets,3))+"s per tweet "+self.symbol+" | "+str(totalTweets)+" | "+str(self.tickerTweets)+"/"+str(self.goal)+" | Page # "+str(totalPages)+" | Page # "+str(self.page)+" | Tweet # "+str(self.i)+" | "+message['user']['username']+" | Bearish : "+str(self.thread))
                             
-                            # insert bullish comment to database
+                            # insert bearish comment to database
                             if(len(x) > 0):
-                                self.db.execute("insert into tweets (ticker,tweet,sentiment,page) values ('"+self.symbol+"','"+x+"','Bearish','"+str(self.page)+"')")
-                                self.conn.commit()
-                
+                                a = insert("insert into testing (ticker,tweet,sentiment,page) values ('"+self.symbol+"','"+x+"','Bearish','"+str(self.page)+"')")
+                                a.start()
+                                
                 # increment position of the tweet on the page
                 self.i += 1
             
@@ -242,6 +236,7 @@ class instance(Thread):
                i = 0
 
 # Declare Global Variables 
+start = time.time()
 totalPages = 1
 totalTweets = 0
 pause = False
@@ -255,6 +250,3 @@ t3 = instance(3)
 t1.start()
 t2.start()
 t3.start()
-        
-        
-        
