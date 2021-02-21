@@ -2,7 +2,7 @@
 
 # Introduction
 
-The stock market is arguably one of the most competitive environment, and every trader and institution is trying to gain an edge in this algorithmic arms race. Even though algorithmic trading computers have taken over the trading floors and now account for the majority of trades on the stock market, human psychology plays an important role in the market's movements. Stock market data is widely available and used for trading, however there are massive quantities of qualitative text data that has great influence over the market. In this project, our goal is to collect a data set of stock tweets and train a model to quantify sentiment on a given opinion about the stock market.
+The stock market is arguably one of the most competitive environments, and every trader and institution is trying to gain an edge in this algorithmic arms race. Even though algorithmic trading computers have taken over the trading floors and now account for the majority of trades on the stock market, human psychology plays an important role in the market's movements. Stock market data is widely available and used for trading, however there are massive quantities of qualitative text data that has great influence over the market. In this project, our goal is to collect a data set of stock tweets and train a model to quantify sentiment on a given opinion about the stock market.
 
 # Methodology
 
